@@ -1,0 +1,537 @@
+{
+  "name": "Near Earth Asteroid",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "asteroidNeoFeed",
+        "additionalFields": {
+          "startDate": "={{ $json.yesterday }}",
+          "endDate": "={{ $json.currentDate }}"
+        }
+      },
+      "type": "n8n-nodes-base.nasa",
+      "typeVersion": 1,
+      "position": [
+        1296,
+        0
+      ],
+      "id": "550cbf53-9b40-4282-9490-1985d7a3fed8",
+      "name": "Get an asteroid neo feed",
+      "credentials": {
+        "nasaApi": {
+          "id": "ZtW0Ia0qFHXwHlO8",
+          "name": "NASA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cf59fba9-7012-43dd-9a25-5cf709c24f6f",
+              "leftValue": "={{ $json.estimated_diameter.kilometers.estimated_diameter_max }}",
+              "rightValue": 0.1,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "b7a37c97-32fa-4429-8f60-d83d48562c6a",
+              "leftValue": "={{ $json.close_approach_data[0].miss_distance.kilometers }}",
+              "rightValue": 3844000,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1728,
+        0
+      ],
+      "id": "f231ea7e-aa94-44b7-82cb-f826c9ff9bf8",
+      "name": "Filter"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1520,
+        0
+      ],
+      "id": "187df8f0-9465-4b78-8e29-4642132372e1",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0cda0aa7-d37e-41bc-a422-c5adaa85eee6",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "5fbe6c0b-8119-4325-a5ee-336aae6087b7",
+              "name": "estimated_diameter_max_km",
+              "value": "={{ $json.estimated_diameter.kilometers.estimated_diameter_max }}",
+              "type": "number"
+            },
+            {
+              "id": "94c52db3-320a-4c0e-956e-e335ce74a83c",
+              "name": "is_potentially_hazardous_asteroid",
+              "value": "={{ $json.is_potentially_hazardous_asteroid }}",
+              "type": "boolean"
+            },
+            {
+              "id": "768a7f21-cbe1-4048-b81b-8a8462dc71b3",
+              "name": "is_sentry_object",
+              "value": "={{ $json.is_sentry_object }}",
+              "type": "boolean"
+            },
+            {
+              "id": "06dfb642-7981-4d5d-8e91-5497991c6009",
+              "name": "miss_distance_km",
+              "value": "={{ $json.close_approach_data[0].miss_distance.kilometers }}",
+              "type": "string"
+            },
+            {
+              "id": "6a1cb307-a963-410e-9e45-49dd22996301",
+              "name": "relative_velocity_km_per_hr",
+              "value": "={{ $json.close_approach_data[0].relative_velocity.kilometers_per_hour }}",
+              "type": "string"
+            },
+            {
+              "id": "83c8d75b-7d5c-4621-984e-793097b0ce59",
+              "name": "close_approach_date",
+              "value": "={{ $json.close_approach_data[0].close_approach_date }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1936,
+        0
+      ],
+      "id": "62f848f5-11fd-40c6-8ba8-f9256c9f1eb1",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an astronomy assistant. Write a concise 2-3 sentence plain language summary of the following asteroid close approach for a general audience. Include the name, how close it will pass, how large it is, and whether it poses any risk.\n\nName: {{ $json.name }}\nMax Diameter: {{ $json.estimated_diameter_max_km }} km\nMiss Distance: {{ $json.miss_distance_km }} km\nRelative Velocity: {{ $json.relative_velocity_km_per_hr }} km/hr\nIs Potentially Hazardous: {{ $json.is_potentially_hazardous_asteroid }}\nIs Sentry Object: {{ $json.is_sentry_object }}",
+        "messages": {
+          "messageValues": []
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2144,
+        0
+      ],
+      "id": "a5cbf94f-70e2-4183-8283-d7de5037af58",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-haiku-4-5-20251001"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        2144,
+        224
+      ],
+      "id": "3e9914ab-9447-4d78-becf-047dbaacf99f",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "s1gmBVfmgAk6YDLU",
+          "name": "Anthropic Astrophysics Workspace"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "Asteroid Alert!",
+        "message": "=Hi, {{ $json.firstName }}!\n\n{{ $('Basic LLM Chain').item.json.text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2656,
+        0
+      ],
+      "id": "1ba10ddf-39ba-46cb-81a5-b0d65bdcccd2",
+      "name": "Send a message",
+      "webhookId": "dbc6d02b-12b9-48e2-9ca8-18fe3962ad4e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "bdVu7UeJyiM5qwRf",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "if ( $vars.debug == 'true') { \n  return [\n    {\n      json: {\n        name: \"2026 SMALL-NEAR\",\n        estimated_diameter: {\n          kilometers: {\n            estimated_diameter_min: 0.01,\n            estimated_diameter_max: 0.05\n          }\n        },\n        is_potentially_hazardous_asteroid: false,\n        is_sentry_object: false,\n        close_approach_data: [\n          {\n            miss_distance: {\n              kilometers: \"1500000\"\n            },\n            relative_velocity: {\n              kilometers_per_hour: \"22000\"\n            },\n            close_approach_date: \"2026-03-20\"\n          }\n        ]\n      }\n    },\n    {\n      json: {\n        name: \"2026 BIG-NEAR\",\n        estimated_diameter: {\n          kilometers: {\n            estimated_diameter_min: 0.12,\n            estimated_diameter_max: 0.25\n          }\n        },\n        is_potentially_hazardous_asteroid: true,\n        is_sentry_object: false,\n        close_approach_data: [\n          {\n            miss_distance: {\n              kilometers: \"1500000\"\n            },\n            relative_velocity: {\n              kilometers_per_hour: \"45000\"\n            },\n            close_approach_date: \"2026-03-20\"\n          }\n        ]\n      }\n    },\n    {\n      json: {\n        name: \"2026 SENTRY-NEAR\",\n        estimated_diameter: {\n          kilometers: {\n            estimated_diameter_min: 0.15,\n            estimated_diameter_max: 0.30\n          }\n        },\n        is_potentially_hazardous_asteroid: true,\n        is_sentry_object: true,\n        close_approach_data: [\n          {\n            miss_distance: {\n              kilometers: \"1500000\"\n            },\n            relative_velocity: {\n              kilometers_per_hour: \"55000\"\n            },\n            close_approach_date: \"2026-03-20\"\n          }\n        ]\n      }\n    }\n  ]\n}\nelse return [];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        368
+      ],
+      "id": "362f79db-67eb-4f05-b9eb-6f6de71e66b0",
+      "name": "Test Entries",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        176,
+        0
+      ],
+      "id": "371b9090-a442-473d-ba27-a9edd6237b5a",
+      "name": "Run at 6AM Daily"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "BaKXRQNcgnT6Pc2D",
+          "mode": "list",
+          "cachedResultName": "Contact",
+          "cachedResultUrl": "/projects/FzA8mIRP8udSo7RX/datatables/BaKXRQNcgnT6Pc2D"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "NearEarthAsteroid",
+              "condition": "isTrue"
+            }
+          ]
+        },
+        "limit": null
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2448,
+        0
+      ],
+      "id": "f275e7ac-bc73-4f1d-924b-48a9aa872291",
+      "name": "Get row(s)",
+      "alwaysOutputData": true,
+      "notesInFlow": true,
+      "executeOnce": true,
+      "notes": "Gets email addresses for this workflow."
+    },
+    {
+      "parameters": {
+        "includeTime": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "c020c689-9f20-4985-96aa-b59ee540230a",
+      "name": "Get Current Date"
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $json.currentDate }}",
+        "format": "MM-dd-yyyy",
+        "outputFieldName": "currentDate",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        864,
+        -96
+      ],
+      "id": "12b7af30-e80d-442f-9783-ebadcf811fb8",
+      "name": "Current Date Formatting"
+    },
+    {
+      "parameters": {
+        "operation": "subtractFromDate",
+        "magnitude": "={{ $json.currentDate }}",
+        "duration": 1,
+        "outputFieldName": "yesterday",
+        "options": {
+          "includeInputFields": true
+        }
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        640,
+        0
+      ],
+      "id": "4a9c566c-03c8-4f35-957e-48b79ab070b3",
+      "name": "Subtract 1 Day"
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $json.yesterday }}",
+        "format": "MM-dd-yyyy",
+        "outputFieldName": "yesterday",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        864,
+        96
+      ],
+      "id": "738d1744-e081-44f4-8347-b145089e3ea0",
+      "name": "Yesterday Date Formatting"
+    },
+    {
+      "parameters": {
+        "mode": "combineBySql",
+        "query": "SELECT input1.currentDate, input2.yesterday FROM input1 JOIN input2 ON 1=1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1088,
+        0
+      ],
+      "id": "b62eb846-94dc-4262-a496-13409f1cf903",
+      "name": "Merge1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get an asteroid neo feed": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Entries": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Run at 6AM Daily": {
+      "main": [
+        [
+          {
+            "node": "Test Entries",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Current Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Current Date": {
+      "main": [
+        [
+          {
+            "node": "Subtract 1 Day",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Current Date Formatting": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subtract 1 Day": {
+      "main": [
+        [
+          {
+            "node": "Current Date Formatting",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Yesterday Date Formatting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Yesterday Date Formatting": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Get an asteroid neo feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "b5KK54HNVvD0OPdM"
+  },
+  "versionId": "ee5d361a-fed3-4ce6-8ab3-b6d88b387e11",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b5bc43d92384fd4e57e4c82ce92f03b21e362d3e2965f35b8a2c5065bd455d67"
+  },
+  "id": "6LvQc8w48F1fRyqy",
+  "tags": []
+}
