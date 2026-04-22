@@ -16,3 +16,12 @@ Credentials needed to configure and use as written:
 * Gmail OAuth
 Other dependencies:
 This workflow as written depends on a simple data table called Contact that stores email addresses. At a minimum it needs three fields: firstName (text), email (text), and NearEarthAsteroid (Boolean).
+
+### Error Workflow
+Nothing to see here (yet). This will hold my n8n error workflow which applies to all other projects.
+
+### Financial
+Nothing to see here (yet). I'm currently working on a project to put in this space.
+
+### Workflow Export
+Nothing to see here (yet). This will hold my workflow for keeping this repo in sync.
