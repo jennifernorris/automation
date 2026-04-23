@@ -1,0 +1,388 @@
+{
+  "id": "0FDpe4BcMYFua2Jq",
+  "name": "Sync Categories",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "url": "=https://api.ynab.com/v1/plans/{{ $vars.budget_id }}/categories",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        64
+      ],
+      "id": "db56c6de-6baa-4749-9482-982e110a10d2",
+      "name": "Fetch Categories",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "M1n4IALp9zPyfKlH",
+          "name": "YNAB Personal Access Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const groups = $input.first().json.data.category_groups;\nconst activeGroups = groups.filter(g => !g.hidden && !g.deleted);\nconst activeCategories = activeGroups\n  .flatMap(g => g.categories\n  .filter(g => !g.hidden && !g.deleted)\n  .map(c => ({\n    id: c.id,\n    category_group_id: c.category_group_id,\n    name: c.name\n  }))\n);\nconst formattedGroups = activeGroups.map(g => ({\n  id: g.id,\n  budget_id: $vars.budget_id,\n  name: g.name\n}));\nconst serverKnowledge = ({\n  id: $('Get server_knowledge').first().json.id,\n  budget_id: $vars.budget_id,\n  resource: \"categories\",\n  server_knowledge: $input.first().json.data.server_knowledge,\n  cached_at: DateTime.now()\n});\nreturn [{\n  json: {\n    groups: formattedGroups,\n    categories: activeCategories,\n    server_knowledge: serverKnowledge\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        -32
+      ],
+      "id": "ab9b9fbf-1c3c-4b6f-b7b9-f86b12b127b4",
+      "name": "Code in JavaScript",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hvrijjgmkqxagcenrrtx.supabase.co/rest/v1/ynab_category_group",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.groups }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1120,
+        -224
+      ],
+      "id": "632b61d8-6a3f-468f-8362-5dacd7892784",
+      "name": "Upsert Category Groups",
+      "credentials": {
+        "supabaseApi": {
+          "id": "nAS4mfbaz190cq5o",
+          "name": "Supabase financial"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hvrijjgmkqxagcenrrtx.supabase.co/rest/v1/ynab_category",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.categories }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1120,
+        -32
+      ],
+      "id": "346928b8-8d12-4fb4-b04f-7010252317b9",
+      "name": "Upsert Categories",
+      "credentials": {
+        "supabaseApi": {
+          "id": "nAS4mfbaz190cq5o",
+          "name": "Supabase financial"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f106f300-d521-49de-a275-ebd33f11c350",
+              "leftValue": "={{ $json.server_knowledge }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        192,
+        -16
+      ],
+      "id": "58afcde2-15a7-4338-95ab-8929028ecd0a",
+      "name": "If resource has server knowledge value",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "url": "=https://api.ynab.com/v1/plans/{{ $vars.budget_id }}/categories",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "last_knowledge_of_server",
+              "value": "={{ $json.server_knowledge  }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        -128
+      ],
+      "id": "ced27068-97cf-4236-843a-5aad076a4595",
+      "name": "Fetch Categories with last_knowledge_of_server",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "M1n4IALp9zPyfKlH",
+          "name": "YNAB Personal Access Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hvrijjgmkqxagcenrrtx.supabase.co/rest/v1/ynab_server_knowledge",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.server_knowledge }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1120,
+        160
+      ],
+      "id": "9b4080b1-18df-4410-8782-b056abdf74b9",
+      "name": "Upsert Server Knowledge",
+      "credentials": {
+        "supabaseApi": {
+          "id": "nAS4mfbaz190cq5o",
+          "name": "Supabase financial"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "ynab_server_knowledge",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "resource",
+              "keyValue": "categories"
+            },
+            {
+              "keyName": "budget_id",
+              "keyValue": "={{$vars.budget_id}}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -16
+      ],
+      "id": "6ff8078e-ba02-416c-9c2f-c79698d09e4f",
+      "name": "Get server_knowledge",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "nAS4mfbaz190cq5o",
+          "name": "Supabase financial"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -176,
+        -16
+      ],
+      "id": "40cb8d26-5a22-4380-a386-626c945113be",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "connections": {
+    "Fetch Categories": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Upsert Category Groups",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Upsert Categories",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Upsert Server Knowledge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If resource has server knowledge value": {
+      "main": [
+        [
+          {
+            "node": "Fetch Categories with last_knowledge_of_server",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Categories with last_knowledge_of_server": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get server_knowledge": {
+      "main": [
+        [
+          {
+            "node": "If resource has server knowledge value",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get server_knowledge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "b5KK54HNVvD0OPdM",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "updatedAt": "2026-04-22T11:15:47.597Z",
+      "createdAt": "2026-04-22T10:44:38.273Z",
+      "id": "EKw0F8W93Gp1FHzN",
+      "name": "folder:financial"
+    },
+    {
+      "updatedAt": "2026-04-22T09:31:56.092Z",
+      "createdAt": "2026-04-22T09:31:56.092Z",
+      "id": "UeRIfIx1aD78KXHu",
+      "name": "version-controlled"
+    }
+  ]
+}
